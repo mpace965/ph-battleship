@@ -113,6 +113,7 @@ public class Battleship {
 		int length;
 		Ship(int length) {
 			this.length = length;
+			this.alive = true;
 		}
 	}
 
