@@ -20,8 +20,12 @@ public class Battleship {
 
 	char[] letters;
 	int[][] grid;
+	int[][] pGrid;
+	Ship[] enemyShips = new Ship[5];
 
 	void placeShips(String opponentID) {
+		initializeShips();
+
 		// Fill Grid With -1s
 		for(int i = 0; i < grid.length; i++) { for(int j = 0; j < grid[i].length; j++) grid[i][j] = -1; }
 
@@ -34,20 +38,81 @@ public class Battleship {
 	}
 
 	void makeMove() {
-		for(int i = 0; i < 8; i++) {
-			for(int j = 0; j < 8; j++) {
-				if (this.grid[i][j] == -1) {
-					String wasHitSunkOrMiss = placeMove(this.letters[i] + String.valueOf(j));
-
-					if (wasHitSunkOrMiss.equals("Hits") || 
-							wasHitSunkOrMiss.equals("Sunk")) {
-						this.grid[i][j] = 1;
-					} else {
-						this.grid[i][j] = 0;			
-					}
-					return;
+		generatePGrid();
+		int iMax, jMax, max;
+		iMax = jMax = max = 0;
+		for (int i = 0; i < 8; i++) {
+			for (int j = 0; j < 8; j++) {
+				if (pGrid[i][j] > max) {
+					max = pGrid[i][j];
+					iMax = i;
+					jMax = j;
 				}
 			}
+		}
+
+		String wasHitSunkOrMiss = placeMove(this.letters[iMax] + String.valueOf(jMax));
+
+		if (wasHitSunkOrMiss.equals("Hits") || 
+				wasHitSunkOrMiss.equals("Sunk")) {
+			this.grid[iMax][jMax] = 1;
+		} else {
+			this.grid[iMax][jMax] = 0;			
+		}
+		return;
+	}
+
+	void initializeShips() {
+		enemyShips[0] = new Ship(2);
+		enemyShips[1] = new Ship(3);
+		enemyShips[2] = new Ship(3);
+		enemyShips[3] = new Ship(4);
+		enemyShips[4] = new Ship(5);
+	}
+
+	void generatePGrid() {
+		pGrid = new int[8][8];
+		for (Ship ship : enemyShips) {
+			if (!ship.alive) 
+				continue;
+			for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < 8; j++) {
+					// can be placed tall
+					if (j + ship.length < 8) {
+						boolean check = true;
+						for (int k = j; k < j + ship.length; k++)
+							if (grid[i][k] == 0) {
+								check = false;
+								break;
+							}
+						if (check)
+							for (int k = j; k < j + ship.length; k++)
+								if (grid[i][k] == -1)
+									pGrid[i][k]++;
+					}
+					// can be placed wide
+					if (i + ship.length < 8) {
+						boolean check = true;
+						for (int k = i; k < i + ship.length; k++)
+							if (grid[k][i] == 0) {
+								check = false;
+								break;
+							}
+						if (check)
+							for (int k = i; k < i + ship.length; k++)
+								if (grid[k][j] == -1)
+									pGrid[k][j]++;
+					}
+				}
+			}
+		}
+	}
+
+	class Ship {
+		boolean alive;
+		int length;
+		Ship(int length) {
+			this.length = length;
 		}
 	}
 
@@ -193,7 +258,7 @@ public class Battleship {
 		catch(Exception e) { System.out.println("No response after from the server after place the move"); }
 
 		if (data.contains("Hit")) return "Hit";
-		else if (data.contains("Sunk")) return "Sun";
+		else if (data.contains("Sunk")) return "Sunk";
 		else if (data.contains("Miss")) return "Miss";
 		else {
 			this.dataPassthrough = data;
