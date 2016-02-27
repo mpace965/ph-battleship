@@ -9,6 +9,7 @@
 
 import java.io.*;
 import java.net.Socket;
+
 import java.net.InetAddress;
 import java.lang.Thread;
 
@@ -41,9 +42,10 @@ public class Battleship {
 		generatePGrid();
 		int iMax, jMax, max;
 		iMax = jMax = max = 0;
+		max = Integer.MIN_VALUE;
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
-				if (pGrid[i][j] > max) {
+				if (pGrid[i][j] > max || (pGrid[i][j] == max && Math.random() > 0.5)) {
 					max = pGrid[i][j];
 					iMax = i;
 					jMax = j;
@@ -53,7 +55,7 @@ public class Battleship {
 
 		String wasHitSunkOrMiss = placeMove(this.letters[iMax] + String.valueOf(jMax));
 
-		if (wasHitSunkOrMiss.equals("Hits") || 
+		if (wasHitSunkOrMiss.equals("Hit") || 
 				wasHitSunkOrMiss.equals("Sunk")) {
 			this.grid[iMax][jMax] = 1;
 		} else {
@@ -77,31 +79,56 @@ public class Battleship {
 				continue;
 			for (int i = 0; i < 8; i++) {
 				for (int j = 0; j < 8; j++) {
+					if ((j == 4 || i == 4) && ship.length == 5) {
+						//System.out.println();
+					}
 					// can be placed tall
-					if (j + ship.length < 8) {
+					if (j + ship.length <= 8) {
 						boolean check = true;
 						for (int k = j; k < j + ship.length; k++)
 							if (grid[i][k] == 0) {
 								check = false;
 								break;
 							}
-						if (check)
+						if (check) {
+							int hit = 1;
+							for (int k = j; k < j + ship.length; k++)
+								if (grid[i][k] == 1)
+									hit += 3;
+								else if (grid[i][k] == 0)
+									hit--;
+							if (hit > 6) 
+								hit -= (hit % 6);
 							for (int k = j; k < j + ship.length; k++)
 								if (grid[i][k] == -1)
-									pGrid[i][k]++;
+									pGrid[i][k] += hit;
+								else
+									pGrid[i][k] = Integer.MIN_VALUE;
+						}
 					}
 					// can be placed wide
-					if (i + ship.length < 8) {
+					if (i + ship.length <= 8) {
 						boolean check = true;
 						for (int k = i; k < i + ship.length; k++)
 							if (grid[k][i] == 0) {
 								check = false;
 								break;
 							}
-						if (check)
+						if (check) {
+							int hit = 1;
+							for (int k = i; k < i + ship.length; k++)
+								if (grid[k][j] == 1)
+									hit += 3;
+								else if (grid[i][k] == 0)
+									hit--;
+							if (hit > 6) 
+								hit -= (hit % 6);
 							for (int k = i; k < i + ship.length; k++)
 								if (grid[k][j] == -1)
-									pGrid[k][j]++;
+									pGrid[k][j] += hit;
+								else
+									pGrid[k][j] = Integer.MIN_VALUE;
+						}
 					}
 				}
 			}
