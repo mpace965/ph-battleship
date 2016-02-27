@@ -7,11 +7,14 @@
  * Battleship Client
  */
 
-import java.io.*;
-import java.net.Socket;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.lang.Thread;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class Battleship {
 	public static String API_KEY = "605363735"; ///////// PUT YOUR API KEY HERE /////////
@@ -30,12 +33,210 @@ public class Battleship {
 		// Fill Grid With -1s
 		for(int i = 0; i < grid.length; i++) { for(int j = 0; j < grid[i].length; j++) grid[i][j] = -1; }
 
-		// Place Ships
-		placeDestroyer("A0", "A1");
-		placeSubmarine("B0", "B2");
-		placeCruiser("C0", "C2");
-		placeBattleship("D0", "D3");
-		placeCarrier("E0", "E4");
+		ArrayList<String[]> coordList = generateNonConflicting();
+		String[] destroyer = coordList.get(0);
+		String[] submarine = coordList.get(1);
+		String[] cruiser = coordList.get(2);
+		String[] battleship = coordList.get(3);
+		String[] carrier = coordList.get(4);	
+		
+		placeDestroyer(destroyer[0], destroyer[1]);
+		placeSubmarine(submarine[0], submarine[1]);
+		placeCruiser(cruiser[0], cruiser[1]);
+		placeBattleship(battleship[0], battleship[1]);
+		placeCarrier(carrier[0], carrier[1]);
+	}
+	
+	public static ArrayList<String[]> generateNonConflicting() {
+		boolean placed[][] = new boolean[8][8];
+		ArrayList<String[]> coordList = new ArrayList<String[]>();
+		
+		String[] destroyer = null;
+		String[] submarine = null;
+		String[] cruiser = null;
+		String[] battleship = null;
+		String[] carrier = null;
+		
+		do {
+			destroyer = generateRandomCoords(2);
+		} while (isConflictingPlacement(destroyer, placed));
+		placed = placeShip(destroyer, placed);
+		coordList.add(destroyer);
+		
+		do {
+			submarine = generateRandomCoords(3);
+		} while (isConflictingPlacement(submarine, placed));
+		placed = placeShip(submarine, placed);
+		coordList.add(submarine);
+		
+		do {
+			cruiser = generateRandomCoords(3);
+		} while (isConflictingPlacement(cruiser, placed));
+		placed = placeShip(cruiser, placed);
+		coordList.add(cruiser);
+		
+		do {
+			battleship = generateRandomCoords(4);
+		} while (isConflictingPlacement(battleship, placed));
+		placed = placeShip(battleship, placed);
+		coordList.add(battleship);
+		
+		do {
+			carrier = generateRandomCoords(5);
+		} while (isConflictingPlacement(carrier, placed));
+		placed = placeShip(carrier, placed);
+		coordList.add(carrier);
+		
+		return coordList;
+	}
+	
+	public static boolean[][] placeShip(String[] coords, boolean[][] board) {
+		int row1 = Math.abs((int) ('A' - coords[0].charAt(0)));
+		int col1 = Math.abs((int) ('0' - coords[0].charAt(1)));
+		int row2 = Math.abs((int) ('A' - coords[1].charAt(0)));
+		int col2 = Math.abs((int) ('0' - coords[1].charAt(1)));
+		
+		boolean vertical = (col1 == col2);
+		
+		if (vertical) {
+			int size = row2 - row1;
+			
+			for (int i = 0; i < size + 1; i++) {
+				board[row1 + i][col1] = true;
+			}
+			
+		} else {
+			int size = col2 - col1;
+			
+			for (int i = 0; i < size + 1; i++) {
+				board[row1][col1 + i] = true;
+			}
+		}
+		
+		return board;
+	}
+	
+	public static boolean isConflictingPlacement(String[] coords, boolean[][] board) {
+		int row1 = Math.abs((int) ('A' - coords[0].charAt(0)));
+		int col1 = Math.abs((int) ('0' - coords[0].charAt(1)));
+		int row2 = Math.abs((int) ('A' - coords[1].charAt(0)));
+		int col2 = Math.abs((int) ('0' - coords[1].charAt(1)));
+		
+		boolean vertical = (col1 == col2);
+		
+		if (vertical) {
+			int size = row2 - row1;
+			
+			//check that path isn't obstructed
+			for (int i = 0; i < size + 1; i++) {
+				if (board[row1 + i][col1])
+					return true;
+			}
+			
+			//check touching above
+			if (row1 > 0 && board[row1 - 1][col1]) {
+				return true;
+			}
+			
+			//check touching below
+			if (row2 < 7 && board[row2 + 1][col1]) {
+				return true;
+			}
+			
+			//check touching left
+			if (col1 > 0) {
+				for (int i = 0; i < size + 1; i++) {
+					if (board[row1 + i][col1 - 1])
+						return true;
+				}
+			}
+			
+			//check touching right
+			if (col1 < 7) {
+				for (int i = 0; i < size + 1; i++) {
+					if (board[row1 + i][col1 + 1])
+						return true;
+				}
+			}
+			
+			return false;
+		} else {
+			int size = col2 - col1;
+			
+			//check that path isn't obstructed
+			for (int i = 0; i < size + 1; i++) {
+				if (board[row1][col1 + i])
+					return true;
+			}
+			
+			//check touching left
+			if (col1 > 0 && board[row1][col1 - 1]) {
+				return true;
+			}
+			
+			//check touching right
+			if (col2 < 7 && board[row1][col2 + 1]) {
+				return true;
+			}
+			
+			//check touching above
+			if (row1 > 0) {
+				for (int i = 0; i < size + 1; i++) {
+					if (board[row1 - 1][col1 + i])
+						return true;
+				}
+			}
+			
+			//check touching below
+			if (row1 < 7) {
+				for (int i = 0; i < size + 1; i++) {
+					if (board[row1 + 1][col1 + i])
+						return true;
+				}
+			}
+			
+			return false;
+		}
+	}
+	
+	public static String[] generateRandomCoords(int size) {
+		String[] coords = new String[2];
+		Random r = new Random();
+		boolean vertical = (r.nextDouble() < 0.5);
+		
+		if (vertical) {
+			int col = r.nextInt(8);
+			int row1 = 0;
+			
+			do {
+				row1 = r.nextInt(8);
+			} while (row1 + (size - 1) > 7);
+			
+			int row2 = row1 + (size - 1);
+			
+			String coord1 = "" + ((char) ('A' + row1)) + col;
+			String coord2 = "" + ((char) ('A' + row2)) + col;
+			
+			coords[0] = coord1;
+			coords[1] = coord2;
+		} else {
+			int row = r.nextInt(8);
+			int col1 = 0;
+			
+			do {
+				col1 = r.nextInt(8);
+			} while (col1 + (size - 1) > 7);
+			
+			int col2 = col1 + (size - 1);
+			
+			String coord1 = "" + ((char) ('A' + row)) + col1;
+			String coord2 = "" + ((char) ('A' + row)) + col2;
+			
+			coords[0] = coord1;
+			coords[1] = coord2;
+		}
+		
+		return coords;
 	}
 
 	void makeMove() {
@@ -188,8 +389,6 @@ public class Battleship {
 			System.exit(1); // Close Client
 		}
 	}
-
-
 
 	public void gameMain() {
 		while(true) {
